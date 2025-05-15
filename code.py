@@ -18,6 +18,8 @@ CREATE TABLE IF NOT EXISTS transactions (
 conn.commit()
 conn.close()
 
+ALLOWED_CATEGORIES = ['Income', 'Food', 'Transport', 'Expense', 'Health', 'Other']
+
 def add_transaction(date, category, description, amount):
     conn = sqlite3.connect('bookkeeping.db')
     cursor = conn.cursor()
@@ -82,9 +84,23 @@ def generate_report():
     ''')
     
     report = cursor.fetchall()
+
+    total_income = 0
+    total_expense = 0
     
     for row in report:
-        print(f"Category: {row[0]}, Total Amount: {row[1]}")
+        category = row[0]
+        amount = row[1]
+        print(f"Category: {category}, Total Amount: {amount}")
+        if category == 'Income':
+            total_income += amount
+        else:
+            total_expense += amount
+
+    net_income = total_income - total_expense
+    print(f"\nTotal Income: {total_income}")
+    print(f"Total Expense: {total_expense}")
+    print(f"Net Income: {net_income}")
     
     conn.close()
 
@@ -102,7 +118,21 @@ def main():
         
         if choice == '1':
             date = input("Enter date (YYYY-MM-DD): ")
-            category = input("Enter category: ")
+            while True:
+                category = input("Enter category: ")
+                if category not in ALLOWED_CATEGORIES:
+                    print(f"Invalid category. Allowed categories are: {', '.join(ALLOWED_CATEGORIES)}")
+                    retry = input("Do you want to re-enter the category? (y/n): ")
+                    if retry.lower() == 'y':
+                        continue
+                    else:
+                        print("Transaction Cancelled.")
+                        category = None  # Set category to None to indicate cancellation
+                        break
+                else:
+                    break
+            if category is None:
+                continue
             description = input("Enter description: ")
             amount = float(input("Enter amount: "))
             add_transaction(date, category, description, amount)
@@ -114,7 +144,21 @@ def main():
         elif choice == '4':
             transaction_id = int(input("Enter transaction ID to update: "))
             date = input("Enter new date (YYYY-MM-DD): ")
-            category = input("Enter new category: ")
+            while True:
+                category = input("Enter new category: ")
+                if category not in ALLOWED_CATEGORIES:
+                    print(f"Invalid category. Please choose from: {', '.join(ALLOWED_CATEGORIES)}")
+                    retry = input("Do you want to re-enter the category? (yes/no): ")
+                    if retry.lower() == 'yes':
+                        continue
+                    else:
+                        print("Transaction cancelled.")
+                        category = None  # Set category to None to indicate cancellation
+                        break
+                else:
+                    break
+            if category is None:
+                continue
             description = input("Enter new description: ")
             amount = float(input("Enter new amount: "))
             update_transaction(transaction_id, date, category, description, amount)
@@ -127,4 +171,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
