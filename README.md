@@ -33,5 +33,10 @@ A simple, command-line Python-based bookkeeping system designed for **freelancer
 1. Clone the repository:
 
    ```bash
-   git clone https://github.com/yourusername/bookkeeping-system.git
+   git clone https://github.com/aneesh-t1/Bookkeeping.git
    cd bookkeeping-system
+
+2. Install dependencies
+
+   ```bash
+   pip install -r requirements.txt
