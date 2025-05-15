@@ -1,4 +1,5 @@
 import sqlite3
+import pandas as pd
 
 # Allowed categories
 ALLOWED_CATEGORIES = ['Income', 'Food', 'Transport', 'Expense', 'Health', 'Other']
@@ -36,7 +37,7 @@ def add_transaction(date, category, description, amount):
     print("Transaction added successfully.")
 
 # View all transactions
-def view_transactions():
+def view_transactions_with_index():
     conn = sqlite3.connect('bookkeeping.db')
     cursor = conn.cursor()
 
@@ -44,23 +45,54 @@ def view_transactions():
     transactions = cursor.fetchall()
 
     print("\n--- Transaction List ---")
-    for transaction in transactions:
-        print(transaction)
+    for index, transaction in enumerate(transactions):
+        print(f"{index + 1}: {transaction}")
 
     conn.close()
+    return transactions
 
 # Delete a transaction by ID
-def delete_transaction(transaction_id):
+def delete_transaction(transactions):
+    while True:
+        try:
+            transaction_index = int(input("Enter transaction index to delete: ")) - 1
+            if 0 <= transaction_index < len(transactions):
+                transaction_id = transactions[transaction_index][0]
+                break
+            else:
+                print("Invalid index. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+
+
     conn = sqlite3.connect('bookkeeping.db')
     cursor = conn.cursor()
 
     cursor.execute('DELETE FROM transactions WHERE id = ?', (transaction_id,))
     conn.commit()
     conn.close()
-    print("🗑️ Transaction deleted successfully.")
+    print("Transaction deleted successfully.")
 
 # Update an existing transaction
-def update_transaction(transaction_id, date, category, description, amount):
+def update_transaction(transactions):
+    while True:
+        try:
+            transaction_index = int(input("Enter transaction index to update: ")) - 1
+            if 0 <= transaction_index < len(transactions):
+                transaction_id = transactions[transaction_index][0]
+                break
+            else:
+                print("Invalid index. Please try again.")
+        except ValueError:
+            print("Invalid input. Please enter a number.")
+    
+    date = input("Enter new date (YYYY-MM-DD): ")
+    category = get_valid_category()
+    description = input("Enter new description: ")
+    amount = get_valid_amount()
+
+    # Update the transaction in the database
+
     conn = sqlite3.connect('bookkeeping.db')
     cursor = conn.cursor()
 
@@ -119,6 +151,15 @@ def get_valid_amount():
         except ValueError:
             print("Invalid amount. Please enter a number.")
 
+def export_to_excel(filename='transactions.xlsx'):
+    conn = sqlite3.connect('bookkeeping.db')
+    query = 'SELECT * FROM transactions'
+    df = pd.read_sql_query(query, conn)
+    conn.close()
+
+    df.to_excel(filename, index=False)
+    print(f"Data exported to {filename} successfully.")
+
 # CLI Menu
 def main():
     initialize_database()
@@ -130,9 +171,10 @@ def main():
         print("3. Delete Transaction")
         print("4. Update Transaction")
         print("5. Generate Report")
-        print("6. Exit")
+        print("6. Export to Excel")
+        print("7. Exit")
 
-        choice = input("Enter your choice (1–6): ").strip()
+        choice = input("Enter your choice (1-7): ").strip()
 
         if choice == '1':
             date = input("Enter date (YYYY-MM-DD): ")
@@ -142,35 +184,30 @@ def main():
             add_transaction(date, category, description, amount)
 
         elif choice == '2':
-            view_transactions()
+            view_transactions_with_index()
 
         elif choice == '3':
-            try:
-                transaction_id = int(input("Enter transaction ID to delete: "))
-                delete_transaction(transaction_id)
-            except ValueError:
-                print("Invalid ID.")
+            transactions = view_transactions_with_index()
+            if transactions:
+                delete_transaction(transactions)
 
         elif choice == '4':
-            try:
-                transaction_id = int(input("Enter transaction ID to update: "))
-                date = input("Enter new date (YYYY-MM-DD): ")
-                category = get_valid_category()
-                description = input("Enter new description: ")
-                amount = get_valid_amount()
-                update_transaction(transaction_id, date, category, description, amount)
-            except ValueError:
-                print("Invalid input.")
+            transactions = view_transactions_with_index()
+            if transactions:
+                update_transaction(transactions)
 
         elif choice == '5':
             generate_report()
 
         elif choice == '6':
+            export_to_excel()
+
+        elif choice == '7':
             print("Goodbye!")
             break
 
         else:
-            print("Invalid choice. Please enter a number between 1 and 6.")
+            print("Invalid choice. Please enter a number between 1 and 7.")
 
 if __name__ == "__main__":
     main()
